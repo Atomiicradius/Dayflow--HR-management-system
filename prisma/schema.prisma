@@ -1,0 +1,37 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Attendance {
+  id                 String    @id @default(uuid())
+  employeeId         String    @map("employee_id")
+  date               String              // YYYY-MM-DD format for easy daily unique tracking
+  checkInTime        DateTime  @map("check_in_time")
+  checkOutTime       DateTime? @map("check_out_time")
+  checkInLat         Float     @map("check_in_lat")
+  checkInLng         Float     @map("check_in_lng")
+  status             String              // "Present", "Absent", "Half-day", "Leave"
+  isManualOverride   Boolean   @default(false) @map("is_manual_override")
+  tag                String?             // "Meeting", "Field Work", "WFH", "Regular"
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@unique([employeeId, date])
+  @@map("attendance")
+}
+
+model OfficeLocation {
+  id           String   @id @default(uuid())
+  latitude     Float
+  longitude    Float
+  radiusMeters Float    @map("radius_meters")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("office_location")
+}
