@@ -8,7 +8,8 @@ import type { Profile } from '@/types/database.types';
 import LeaveApplyModal, { LeaveWithProfile } from './LeaveApplyModal';
 import LeaveApprovalTable from './LeaveApprovalTable';
 import AnimatedText from '@/components/ui/AnimatedText';
-import { createLeaveRequestAction, reviewLeaveAction, ANNUAL_ALLOCATION } from '@/app/dashboard/leaves/actions';
+import { createLeaveRequestAction, reviewLeaveAction } from '@/app/dashboard/leaves/actions';
+import { ANNUAL_ALLOCATION } from '@/lib/leave-policy';
 
 interface LeavesContainerProps {
   currentUser: Profile;

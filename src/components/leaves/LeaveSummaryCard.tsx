@@ -3,15 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile, Leave } from "@/types/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ANNUAL_ALLOCATION } from "@/lib/leave-policy";
 
 function asUntyped(supabase: Awaited<ReturnType<typeof createClient>>): SupabaseClient {
   return supabase as unknown as SupabaseClient;
 }
-
-const ANNUAL_ALLOCATION = {
-  paid: 12,
-  sick: 6,
-};
 
 export async function LeaveSummaryCard({ profile }: { profile: Profile }) {
   const supabase = await createClient();

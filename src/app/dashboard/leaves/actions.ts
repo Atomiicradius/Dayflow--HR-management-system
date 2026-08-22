@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { Leave, Profile } from "@/types/database.types";
+import { ANNUAL_ALLOCATION } from "@/lib/leave-policy";
 
 function asUntyped(supabase: Awaited<ReturnType<typeof createClient>>): SupabaseClient {
   return supabase as unknown as SupabaseClient;
@@ -21,12 +22,6 @@ export interface LeaveActionState {
   error?: string;
   success?: boolean;
 }
-
-export const ANNUAL_ALLOCATION = {
-  paid: 12,
-  sick: 6,
-  unpaid: 999,
-};
 
 export async function createLeaveRequestAction(
   _prev: LeaveActionState,
