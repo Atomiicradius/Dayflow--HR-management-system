@@ -54,7 +54,7 @@ export default function SignupPage() {
     <div className="flex min-h-svh items-center justify-center bg-muted/40 px-4 py-8">
       <Card className="w-full max-w-md shadow-md border-border">
         <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-purple-600/10 text-purple-600">
+          <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-accent text-accent-foreground">
             <Building2 className="size-6" />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Create your account</CardTitle>
@@ -156,7 +156,7 @@ export default function SignupPage() {
             <Button
               type="submit"
               disabled={isPending}
-              className="mt-2 bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-sm transition-all"
+              className="mt-2 bg-primary hover:opacity-90 text-primary-foreground font-medium shadow-sm transition-all"
             >
               {isPending ? "Creating account…" : "Sign Up"}
             </Button>
@@ -166,7 +166,7 @@ export default function SignupPage() {
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-semibold text-purple-600 hover:text-purple-700 underline underline-offset-4"
+              className="font-semibold text-primary hover:opacity-80 underline underline-offset-4"
             >
               Sign In
             </Link>
