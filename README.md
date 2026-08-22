@@ -1,2 +1,2 @@
 # Dayflow--HR-management-system
-Odoo hackathon repo
+Odoo hackathon repo, aim is to develop a efficient HR tracking system to help the company 
