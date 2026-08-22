@@ -465,6 +465,327 @@ select.form-control {
   border: 1px solid var(--panel-border);
 }
 
+/* Daily/Weekly Toggle */
+.view-toggle {
+  display: flex;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--panel-border);
+  padding: 0.25rem;
+  border-radius: 8px;
+  width: fit-content;
+  margin-bottom: 1.5rem;
+}
+
+.toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.toggle-btn.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* Weekly 7-Day Grid */
+.weekly-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.weekly-day-card {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--panel-border);
+  padding: 1.25rem 0.5rem;
+  border-radius: 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-smooth);
+}
+
+.weekly-day-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.weekly-day-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+  letter-spacing: 0.05em;
+}
+
+.weekly-day-date {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.weekly-status-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.weekly-hours {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 0.6rem;
+}
+
+/* Analytics Charts Layout */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 1.5rem;
+  margin-top: 2rem;
+  border-top: 1px solid var(--panel-border);
+  padding-top: 2rem;
+}
+
+.chart-card {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.chart-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+
+.chart-wrapper {
+  width: 100%;
+  height: 260px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Stat Cards Grid */
+.stat-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--panel-border);
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: var(--transition-smooth);
+}
+
+.stat-card:hover {
+  background: rgba(255, 255, 255, 0.01);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.stat-card-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.05em;
+}
+
+.stat-card-value {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.stat-card-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Monthly Calendar Grid */
+.calendar-container {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+}
+
+.calendar-header-cell {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  padding: 0.5rem 0;
+  letter-spacing: 0.05em;
+}
+
+.calendar-day-cell {
+  position: relative;
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--panel-border);
+  aspect-ratio: 1.35;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.4rem 0.5rem;
+  transition: var(--transition-smooth);
+}
+
+.calendar-day-cell:hover:not(.empty-cell) {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.calendar-day-cell.active-selected {
+  border-color: var(--color-secondary) !important;
+  background: rgba(0, 229, 255, 0.03) !important;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
+}
+
+.calendar-day-number {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  align-self: flex-start;
+}
+
+.calendar-day-cell.empty-cell {
+  opacity: 0.1;
+  cursor: default;
+  pointer-events: none;
+  background: transparent;
+  border-style: dashed;
+}
+
+.calendar-day-status-indicator {
+  height: 4px;
+  width: 100%;
+  border-radius: 2px;
+  margin-top: 0.4rem;
+}
+
+/* Calendar Cell Colors */
+.calendar-day-cell.status-present {
+  border-left: 3px solid var(--status-present);
+}
+.calendar-day-cell.status-present .calendar-day-status-indicator {
+  background-color: var(--status-present);
+}
+
+.calendar-day-cell.status-absent {
+  border-left: 3px solid var(--status-absent);
+}
+.calendar-day-cell.status-absent .calendar-day-status-indicator {
+  background-color: var(--status-absent);
+}
+
+.calendar-day-cell.status-halfday {
+  border-left: 3px solid var(--status-halfday);
+}
+.calendar-day-cell.status-halfday .calendar-day-status-indicator {
+  background-color: var(--status-halfday);
+}
+
+.calendar-day-cell.status-leave {
+  border-left: 3px solid var(--status-leave);
+}
+.calendar-day-cell.status-leave .calendar-day-status-indicator {
+  background-color: var(--status-leave);
+}
+
+.calendar-day-cell.status-weekend {
+  border-left: 3px solid rgba(255, 255, 255, 0.15);
+}
+.calendar-day-cell.status-weekend .calendar-day-status-indicator {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.badge-weekend {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--panel-border) !important;
+}
+
+/* Day details panel */
+.day-details-box {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px dashed var(--panel-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+}
+
+.details-box-header {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--panel-border);
+  padding-bottom: 0.5rem;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem 1.5rem;
+}
+
+.details-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+}
+
+.details-label {
+  color: var(--text-secondary);
+}
+
+.details-val {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 /* Media Queries & Responsive Layouts */
 
 /* Tablet & iPad Breakpoint (Squeezed desktop viewports) */
@@ -493,6 +814,25 @@ select.form-control {
   
   .tab-btn, .btn, .tag-pill {
     touch-action: manipulation; /* Optimize touch response latency on mobile/tablet */
+  }
+  
+  .charts-grid {
+    grid-template-columns: 1fr; /* Stack charts on tablet */
+    gap: 1.5rem;
+  }
+  
+  .weekly-grid {
+    grid-template-columns: repeat(4, 1fr); /* Wrap weekly days on tablet */
+    gap: 0.75rem;
+  }
+  
+  .stat-cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .calendar-day-cell {
+    aspect-ratio: 1.15;
   }
 }
 
@@ -536,5 +876,38 @@ select.form-control {
   .data-table th, .data-table td {
     padding: 0.6rem 0.5rem;
     font-size: 0.8rem;
+  }
+  
+  .weekly-grid {
+    grid-template-columns: repeat(2, 1fr); /* Stack further on mobile */
+    gap: 0.5rem;
+  }
+  
+  .chart-wrapper {
+    height: 200px;
+  }
+  
+  .stat-cards-grid {
+    grid-template-columns: 1fr; /* Stack stat cards on mobile */
+    gap: 0.5rem;
+  }
+  
+  .calendar-grid {
+    gap: 0.25rem;
+  }
+
+  .calendar-day-cell {
+    aspect-ratio: auto;
+    min-height: 52px;
+    padding: 0.25rem;
+  }
+
+  .calendar-day-number {
+    font-size: 0.75rem;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
   }
 }

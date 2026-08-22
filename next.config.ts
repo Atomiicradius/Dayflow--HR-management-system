@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     '10.118.108.154',
     'localhost:3000',
-    'nasty-parents-ring.loca.lt',
+    'grumpy-bears-wash.loca.lt',
   ],
 } as any;
 
