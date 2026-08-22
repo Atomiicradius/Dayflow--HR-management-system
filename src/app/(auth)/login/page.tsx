@@ -6,19 +6,20 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Eye, EyeOff, Building2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { loginSchema, type LoginInput } from "@/lib/validation/auth";
-import { signIn } from "@/lib/firebase/client";
-import { createSession } from "../firebase-actions";
+import { loginAction } from "../actions";
 
 export default function LoginPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -28,73 +29,92 @@ export default function LoginPage() {
 
   const onSubmit = (data: LoginInput) => {
     setServerError(null);
+    const formData = new FormData();
+    formData.set("loginIdentifier", data.loginIdentifier);
+    formData.set("password", data.password);
 
     startTransition(async () => {
-      try {
-        const userCredential = await signIn(data.email, data.password);
-        const user = userCredential.user;
-
-        if (!user.emailVerified) {
-          toast.warning("Please verify your email address before continuing.");
-        }
-
-        const idToken = await user.getIdToken();
-        const sessionRes = await createSession(idToken);
-
-        if (sessionRes.error) {
-          setServerError(sessionRes.error);
-          toast.error(sessionRes.error);
-          return;
-        }
-
-        toast.success("Welcome back");
-        router.replace("/dashboard");
-        router.refresh();
-      } catch {
-        const msg = "Incorrect email or password.";
-        setServerError(msg);
-        toast.error(msg);
+      const result = await loginAction({}, formData);
+      if (result.error) {
+        setServerError(result.error);
+        toast.error(result.error);
+        return;
       }
+
+      toast.success("Welcome back!");
+      router.replace("/dashboard");
+      router.refresh();
     });
   };
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-muted/40 px-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-xl">Sign in to Dayflow</CardTitle>
-          <CardDescription>Use your registered email and password.</CardDescription>
+      <Card className="w-full max-w-sm shadow-md border-border">
+        <CardHeader className="text-center pb-4">
+          <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-purple-600/10 text-purple-600">
+            <Building2 className="size-6" />
+          </div>
+          <CardTitle className="text-2xl font-bold tracking-tight">Sign in to Dayflow</CardTitle>
+          <CardDescription>Enter your Login ID or registered Email address.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" autoComplete="email" {...register("email")} />
-              {errors.email && (
-                <p className="text-xs text-destructive">{errors.email.message}</p>
+              <Label htmlFor="loginIdentifier">Login ID / Email</Label>
+              <Input
+                id="loginIdentifier"
+                placeholder="e.g. OIJODO20220001 or name@company.com"
+                autoComplete="username"
+                {...register("loginIdentifier")}
+              />
+              {errors.loginIdentifier && (
+                <p className="text-xs text-destructive">{errors.loginIdentifier.message}</p>
               )}
             </div>
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                {...register("password")}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className="pr-10"
+                  {...register("password")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
             </div>
+
             {serverError && <p className="text-sm text-destructive">{serverError}</p>}
-            <Button type="submit" disabled={isPending} className="mt-1">
-              {isPending ? "Signing in…" : "Sign in"}
+
+            <Button
+              type="submit"
+              disabled={isPending}
+              className="mt-2 bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-sm transition-all"
+            >
+              {isPending ? "Signing in…" : "SIGN IN"}
             </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" className="font-medium text-foreground underline underline-offset-4">
-              Sign up
+
+          <p className="mt-5 text-center text-sm text-muted-foreground">
+            Don&apos;t have an Account?{" "}
+            <Link
+              href="/signup"
+              className="font-semibold text-purple-600 hover:text-purple-700 underline underline-offset-4"
+            >
+              Sign Up
             </Link>
           </p>
         </CardContent>

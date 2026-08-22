@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-// Shared between the client form and any server-side re-validation, so the
-// rules never drift between the two.
 export const signupSchema = z
   .object({
+    companyName: z.string().trim().optional(),
     fullName: z.string().trim().min(2, "Enter your full name"),
     email: z.string().trim().email("Enter a valid email address"),
+    phone: z.string().trim().optional(),
     password: z
       .string()
       .min(8, "At least 8 characters")
@@ -21,7 +21,7 @@ export const signupSchema = z
 export type SignupInput = z.infer<typeof signupSchema>;
 
 export const loginSchema = z.object({
-  email: z.string().trim().email("Enter a valid email address"),
+  loginIdentifier: z.string().trim().min(1, "Enter your Login ID or Email"),
   password: z.string().min(1, "Enter your password"),
 });
 

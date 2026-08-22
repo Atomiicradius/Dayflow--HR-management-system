@@ -15,8 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Profile } from "@/types/database.types";
-import { signOutUser } from "@/lib/firebase/client";
-import { clearSession } from "@/app/(auth)/firebase-actions";
+import { logoutAction } from "@/app/(auth)/actions";
 
 function initials(name: string) {
   return name
@@ -58,8 +57,7 @@ export function UserMenu({ profile }: { profile: Profile }) {
             disabled={isPending}
             onClick={() =>
               startTransition(async () => {
-                await signOutUser();
-                await clearSession();
+                await logoutAction();
                 router.replace("/login");
                 router.refresh();
               })
