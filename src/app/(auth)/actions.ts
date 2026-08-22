@@ -26,18 +26,14 @@ export async function loginAction(
 
   // If user entered an Employee ID (e.g. OIJODO20220001) instead of an email address
   if (!emailToAuth.includes("@")) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("email")
-      .eq("employee_id", emailToAuth.toUpperCase())
-      .maybeSingle();
+    const { data: resolvedEmail } = await (
+      supabase as unknown as import("@supabase/supabase-js").SupabaseClient
+    ).rpc("resolve_login_email", { p_employee_id: emailToAuth });
 
-    const profile = data as { email: string } | null;
-
-    if (!profile || !profile.email) {
+    if (!resolvedEmail) {
       return { error: "No account found matching this Login ID." };
     }
-    emailToAuth = profile.email;
+    emailToAuth = resolvedEmail as string;
   }
 
   const { error } = await supabase.auth.signInWithPassword({
@@ -46,7 +42,7 @@ export async function loginAction(
   });
 
   if (error) {
-    return { error: "Incorrect Login ID/email or password." };
+    return { error: error.message };
   }
 
   return { success: true };
