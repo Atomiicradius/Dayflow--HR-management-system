@@ -37,14 +37,31 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Redirect unauthenticated requests away from /dashboard
+  // 1. Redirect unauthenticated requests away from /dashboard
   if (!user && pathname.startsWith("/dashboard")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Redirect signed-in users away from auth pages
+  // 2. Redirect non-admins away from admin-only subpaths
+  if (user && (pathname.startsWith("/dashboard/admin") || pathname.startsWith("/dashboard/employees"))) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const profile = data as { role?: string } | null;
+
+    if (profile?.role !== "admin") {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/dashboard";
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
+  // 3. Redirect signed-in users away from auth pages
   if (user && (pathname === "/login" || pathname === "/signup")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/dashboard";
