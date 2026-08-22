@@ -37,7 +37,7 @@ async function main() {
     const dayOfWeek = dateObj.getDay(); // 0 = Sunday, 6 = Saturday
 
     if (dayOfWeek === 0 || dayOfWeek === 6) {
-      // Weekend: Seed in the database as Leave (Weekend Off)
+      // Weekend: Seed in the database as status 'Weekend' (Off day) rather than 'Leave'
       await db.attendance.create({
         data: {
           employeeId: 'EMP001',
@@ -46,7 +46,7 @@ async function main() {
           checkOutTime: new Date(`${dateStr}T09:00:00.000Z`), // 0 hours
           checkInLat: 0.0,
           checkInLng: 0.0,
-          status: 'Leave',
+          status: 'Weekend',
           tag: 'Weekend',
           isManualOverride: false,
         },
@@ -58,14 +58,14 @@ async function main() {
       const isApprovedLeave = (i === 12); // Mock 1 sick leave day
 
       if (isAbsent) {
-        // In our architecture, "Absent" is represented by the absence of a check-in record.
+        // "Absent" is represented by the absence of a check-in record.
         // We do not seed a record for this day; the API will dynamically evaluate it as Absent on load.
         console.log(`  EMP001 on ${dateStr}: Absent (Skipped record)`);
         continue;
       }
 
       if (isApprovedLeave) {
-        // approved leave day in database
+        // approved leave day in database (reserving 'Leave' status for real leaves)
         await db.attendance.create({
           data: {
             employeeId: 'EMP001',

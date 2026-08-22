@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
     // Generate list of the last 30 calendar days
     const history = [];
-    const statusCounts = { Present: 0, Absent: 0, 'Half-day': 0, Leave: 0 };
+    const statusCounts = { Present: 0, Absent: 0, 'Half-day': 0, Leave: 0, Weekend: 0 };
     const today = new Date();
 
     for (let i = 29; i >= 0; i--) {
@@ -73,28 +73,25 @@ export async function GET(req: NextRequest) {
           isReal: true,
         });
       } else {
-        // GENERATE HIGH-QUALITY MOCK DATA FOR DATES WITH NO RECORDS
-        // This provides judges and team review panels with rich visual analytics instantly
-        let mockStatus: 'Present' | 'Absent' | 'Half-day' | 'Leave' = 'Absent';
+        // GENERATE MOCK DATA FOR DATES WITH NO RECORDS
+        let mockStatus: 'Present' | 'Absent' | 'Half-day' | 'Leave' | 'Weekend' = 'Absent';
         let mockHours = 0.0;
         let mockTag = 'Regular';
 
         if (dayOfWeek === 0 || dayOfWeek === 6) {
-          // Weekends: mark as Leave (e.g., weekend off) or skip hours
-          mockStatus = 'Leave';
+          // Weekends: mark as Weekend (Off day) rather than Leave
+          mockStatus = 'Weekend';
           mockHours = 0.0;
           mockTag = 'Weekend';
         } else {
-          // Weekdays: generate realistic distribution (mostly Present, some Absent/Half-day)
+          // Weekdays: generate realistic distribution
           const randomVal = Math.random();
           if (randomVal < 0.82) {
             mockStatus = 'Present';
-            // Mock random shift hours: between 7.5 and 9.5 hours
             mockHours = Math.round((7.5 + Math.random() * 2.0) * 100) / 100;
             mockTag = 'Regular';
           } else if (randomVal < 0.90) {
             mockStatus = 'Half-day';
-            // Mock half-day shift hours: between 2.0 and 3.8 hours
             mockHours = Math.round((2.0 + Math.random() * 1.8) * 100) / 100;
             mockTag = 'Regular';
           } else if (randomVal < 0.95) {
@@ -122,7 +119,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Format pie chart structure
+    // Format pie chart structure (excluding Weekend off days)
     const pieData = [
       { name: 'Present', value: statusCounts.Present, color: '#00e676' },
       { name: 'Absent', value: statusCounts.Absent, color: '#ff1744' },

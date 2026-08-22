@@ -51,27 +51,38 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'employee' | 'admin-location' | 'admin-override'>('employee');
   const [alert, setAlert] = useState<{ type: 'success' | 'danger' | 'info'; message: string } | null>(null);
 
-  // --- EMPLOYEE HUB STATES ---
+  // --- EMPLOYEE WORKSPACE STATES ---
   const [employeeId, setEmployeeId] = useState('');
   const [activeTag, setActiveTag] = useState('Regular');
   const [statusChecked, setStatusChecked] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<AttendanceRecord | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   
-  // Phase 2: Employee view options and history
-  const [employeeViewMode, setEmployeeViewMode] = useState<'daily' | 'weekly'>('daily');
+  // Phase 2 & 3: View Toggles & History logs
+  const [employeeViewMode, setEmployeeViewMode] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [historyList, setHistoryList] = useState<HistoryDay[]>([]);
   const [last7Days, setLast7Days] = useState<HistoryDay[]>([]);
   const [pieData, setPieData] = useState<PieItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  // --- ADMIN OFFICE LOCATION STATES ---
+  // Phase 3: Monthly Calendar & Stats states
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<number | null>(null);
+  const [monthlyStats, setMonthlyStats] = useState({
+    avgHours: 0,
+    totalOvertime: 0,
+    presentCount: 0,
+    absentCount: 0,
+    halfDayCount: 0,
+    leaveCount: 0,
+  });
+
+  // --- ADMIN OFFICE CONFIG STATES ---
   const [officeLat, setOfficeLat] = useState('12.9716');
   const [officeLng, setOfficeLng] = useState('77.5946');
   const [officeRadius, setOfficeRadius] = useState('100');
   const [officeLoading, setOfficeLoading] = useState(false);
 
-  // --- ADMIN OVERRIDE STATES ---
+  // --- ADMIN OVERRIDE & DIRECTORY STATES ---
   const [overrideEmployeeId, setOverrideEmployeeId] = useState('');
   const [overrideDate, setOverrideDate] = useState('');
   const [overrideStatus, setOverrideStatus] = useState('Present');
@@ -80,13 +91,12 @@ export default function Dashboard() {
   const [overrideCheckOut, setOverrideCheckOut] = useState('');
   const [overrideLoading, setOverrideLoading] = useState(false);
   
-  // Phase 2: Admin Logs search filters
   const [logsDate, setLogsDate] = useState('');
   const [adminSearch, setAdminSearch] = useState('');
   const [logs, setLogs] = useState<AttendanceRecord[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
 
-  // Auto-clear alert banner after 8 seconds
+  // Auto-clear notifications banner
   useEffect(() => {
     if (alert) {
       const timer = setTimeout(() => setAlert(null), 8000);
@@ -94,7 +104,7 @@ export default function Dashboard() {
     }
   }, [alert]);
 
-  // Load configuration and data on mount
+  // Initial loading setups
   useEffect(() => {
     setMounted(true);
     const todayStr = new Date().toISOString().split('T')[0];
@@ -104,7 +114,57 @@ export default function Dashboard() {
     fetchLogs(todayStr, '');
   }, []);
 
-  // --- API FETCHERS ---
+  // Recalculate Monthly Calendar Stats when history loads or check-ins happen
+  useEffect(() => {
+    if (!statusChecked || historyList.length === 0) return;
+
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    let activeShiftDays = 0;
+    let sumHours = 0;
+    let overtimeSum = 0;
+    let present = 0;
+    let absent = 0;
+    let halfDay = 0;
+    let leave = 0;
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dayData = getCalendarDayData(d);
+      const dayDateObj = new Date(currentYear, currentMonth, d);
+      
+      // Skip future dates (excluding today)
+      if (dayDateObj > new Date() && dayData.date !== todayStr) {
+        continue;
+      }
+
+      if (dayData.hoursWorked > 0) {
+        activeShiftDays++;
+        sumHours += dayData.hoursWorked;
+        if (dayData.hoursWorked > 8.0) {
+          overtimeSum += (dayData.hoursWorked - 8.0);
+        }
+      }
+
+      if (dayData.status === 'Present') present++;
+      else if (dayData.status === 'Absent') absent++;
+      else if (dayData.status === 'Half-day') halfDay++;
+      else if (dayData.status === 'Leave') leave++;
+    }
+
+    setMonthlyStats({
+      avgHours: activeShiftDays > 0 ? Math.round((sumHours / activeShiftDays) * 10) / 10 : 0,
+      totalOvertime: Math.round(overtimeSum * 10) / 10,
+      presentCount: present,
+      absentCount: absent,
+      halfDayCount: halfDay,
+      leaveCount: leave,
+    });
+  }, [historyList, currentRecord, statusChecked]);
+
+  // --- API ROUTE REQUESTS ---
 
   const fetchOfficeLocation = async () => {
     try {
@@ -115,8 +175,8 @@ export default function Dashboard() {
         setOfficeLng(data.location.longitude.toString());
         setOfficeRadius(data.location.radiusMeters.toString());
       }
-    } catch (err: any) {
-      showNotice('danger', 'Failed to load office location settings.');
+    } catch (err) {
+      showNotice('danger', 'Failed to retrieve office settings.');
     }
   };
 
@@ -130,8 +190,8 @@ export default function Dashboard() {
       if (data.success) {
         setLogs(data.records);
       }
-    } catch (err: any) {
-      showNotice('danger', 'Failed to retrieve attendance logs.');
+    } catch (err) {
+      showNotice('danger', 'Failed to retrieve directory logs.');
     } finally {
       setLogsLoading(false);
     }
@@ -148,8 +208,8 @@ export default function Dashboard() {
         setLast7Days(data.last7Days);
         setPieData(data.pieData);
       }
-    } catch (err: any) {
-      showNotice('danger', 'Failed to load history metrics.');
+    } catch (err) {
+      showNotice('danger', 'Failed to load visual metrics.');
     } finally {
       setHistoryLoading(false);
     }
@@ -166,12 +226,12 @@ export default function Dashboard() {
       if (data.success) {
         setCurrentRecord(data.record);
         setStatusChecked(true);
-        // Load history analytics and weekly logs as well
+        setSelectedCalendarDay(new Date().getDate()); // Default select today in calendar
         fetchEmployeeHistory(targetId);
       } else {
-        showNotice('danger', data.error || 'Failed to verify status.');
+        showNotice('danger', data.error || 'Failed to verify employee.');
       }
-    } catch (err: any) {
+    } catch (err) {
       showNotice('danger', 'Error connecting to servers.');
     } finally {
       setActionLoading(false);
@@ -190,7 +250,7 @@ export default function Dashboard() {
     }
 
     setActionLoading(true);
-    showNotice('info', 'Acquiring browser geolocation coordinates...');
+    showNotice('info', 'Acquiring browser coordinates...');
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -213,27 +273,27 @@ export default function Dashboard() {
 
           if (res.ok && data.success) {
             setCurrentRecord(data.record);
-            showNotice('success', `Check-in recorded successfully! Distance to office: ${Math.round(data.distance)}m.`);
-            fetchEmployeeHistory(employeeId); // refresh charts
-            fetchLogs(logsDate, adminSearch); // refresh admin list
+            showNotice('success', `Check-in recorded! Distance: ${Math.round(data.distance)}m.`);
+            fetchEmployeeHistory(employeeId); // refresh graphs and calendars
+            fetchLogs(logsDate, adminSearch); // refresh admin table
           } else {
             showNotice('danger', data.error || 'Check-in was rejected by server.');
           }
-        } catch (err: any) {
-          showNotice('danger', 'Failed to process check-in request.');
+        } catch (err) {
+          showNotice('danger', 'Failed to log check-in.');
         } finally {
           setActionLoading(false);
         }
       },
       (error) => {
         setActionLoading(false);
-        let errorMsg = 'Please allow location access to check in.';
+        let errorMsg = 'Please allow location permissions to check in.';
         if (error.code === error.PERMISSION_DENIED) {
-          errorMsg = 'Location access denied. Please enable location permissions in your browser settings.';
+          errorMsg = 'Location permission denied. Please allow location access in your browser.';
         } else if (error.code === error.POSITION_UNAVAILABLE) {
-          errorMsg = 'Location information is unavailable. Try again in a moment.';
+          errorMsg = 'GPS location info unavailable. Try again in a moment.';
         } else if (error.code === error.TIMEOUT) {
-          errorMsg = 'Location request timed out. Please try checking in again.';
+          errorMsg = 'GPS location request timed out. Please try again.';
         }
         showNotice('danger', errorMsg);
       },
@@ -255,15 +315,15 @@ export default function Dashboard() {
 
       if (res.ok && data.success) {
         setCurrentRecord(data.record);
-        const shiftDur = Math.round(data.hoursWorked * 10) / 10;
-        showNotice('success', `Checkout recorded successfully. Total hours worked: ${shiftDur}h (Status: ${data.record.status}).`);
-        fetchEmployeeHistory(employeeId); // refresh charts
-        fetchLogs(logsDate, adminSearch); // refresh admin list
+        const hours = Math.round(data.hoursWorked * 10) / 10;
+        showNotice('success', `Checkout recorded. Shift duration: ${hours}h (Status: ${data.record.status}).`);
+        fetchEmployeeHistory(employeeId); // refresh graphs
+        fetchLogs(logsDate, adminSearch); // refresh admin table
       } else {
         showNotice('danger', data.error || 'Failed to check out.');
       }
-    } catch (err: any) {
-      showNotice('danger', 'Failed to process check-out request.');
+    } catch (err) {
+      showNotice('danger', 'Failed to process checkout.');
     } finally {
       setActionLoading(false);
     }
@@ -285,11 +345,11 @@ export default function Dashboard() {
       const data = await res.json();
 
       if (data.success) {
-        showNotice('success', 'Office boundary coordinates successfully updated!');
+        showNotice('success', 'Office geofence boundaries updated!');
       } else {
         showNotice('danger', data.error || 'Failed to update boundaries.');
       }
-    } catch (err: any) {
+    } catch (err) {
       showNotice('danger', 'Error updating boundaries.');
     } finally {
       setOfficeLoading(false);
@@ -299,7 +359,7 @@ export default function Dashboard() {
   const saveManualOverride = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!overrideEmployeeId.trim()) {
-      showNotice('danger', 'Employee ID is required for overrides.');
+      showNotice('danger', 'Employee ID is required.');
       return;
     }
 
@@ -322,34 +382,30 @@ export default function Dashboard() {
       const data = await res.json();
 
       if (data.success) {
-        showNotice('success', `Attendance override saved for ${overrideEmployeeId}!`);
-        fetchLogs(logsDate, adminSearch); // Refresh logs table
-        
-        // Reset form inputs
+        showNotice('success', `Manual log overrides saved for ${overrideEmployeeId}!`);
+        fetchLogs(logsDate, adminSearch); // refresh directory list
         setOverrideEmployeeId('');
         setOverrideCheckIn('');
         setOverrideCheckOut('');
         
-        // If the current verified employee is the one overridden, refresh their workspace view too
         if (employeeId.trim() === overrideEmployeeId.trim()) {
           checkEmployeeStatus(employeeId.trim());
         }
       } else {
-        showNotice('danger', data.error || 'Failed to apply manual override.');
+        showNotice('danger', data.error || 'Failed to override log.');
       }
-    } catch (err: any) {
+    } catch (err) {
       showNotice('danger', 'Connection error while saving override.');
     } finally {
       setOverrideLoading(false);
     }
   };
 
-  // Helper alert notifier
   const showNotice = (type: 'success' | 'danger' | 'info', message: string) => {
     setAlert({ type, message });
   };
 
-  // --- UI FORMATTERS ---
+  // --- UI FORMATTING HELPERS ---
   const formatTime = (isoString: string | null) => {
     if (!isoString) return '--:--';
     return new Date(isoString).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -365,12 +421,11 @@ export default function Dashboard() {
     }
 
     if (currentRecord.checkOutTime) {
-      // Map check-out state badge
-      const activeHours = currentRecord.status === 'Half-day' ? 'Half-day Shift' : 'Full Shift';
+      const type = currentRecord.status === 'Half-day' ? 'Half-day Shift' : 'Full Shift';
       return {
         badge: `Checked out (${currentRecord.status})`,
         pulseClass: currentRecord.status === 'Half-day' ? 'pulse-red' : 'pulse-blue',
-        text: `Completed checkout at ${formatTime(currentRecord.checkOutTime)} [${activeHours} | Tag: ${currentRecord.tag || 'Regular'}]`
+        text: `Completed checkout at ${formatTime(currentRecord.checkOutTime)} [${type} | Tag: ${currentRecord.tag || 'Regular'}]`
       };
     }
 
@@ -382,6 +437,73 @@ export default function Dashboard() {
   };
 
   const statusDetails = getStatusTextAndColor();
+
+  // --- MONTHLY CALENDAR GRID MATHEMATICS ---
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth(); // 0-11
+  
+  const getCalendarDays = () => {
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const startDayOfWeek = new Date(currentYear, currentMonth, 1).getDay(); // 0 = Sunday, 1 = Monday, etc.
+    
+    const cells = [];
+    // Padding cells at the beginning
+    for (let i = 0; i < startDayOfWeek; i++) {
+      cells.push({ type: 'empty', dayNum: null });
+    }
+    // Days in current month
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push({ type: 'day', dayNum: d });
+    }
+    return cells;
+  };
+
+  const getCalendarDayData = (dayNum: number): HistoryDay => {
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    // Check if the date is today and uses the active live state
+    if (dateStr === todayStr && currentRecord) {
+      let hours = 0;
+      if (currentRecord.checkOutTime) {
+        hours = (new Date(currentRecord.checkOutTime).getTime() - new Date(currentRecord.checkInTime).getTime()) / (1000 * 60 * 60);
+      } else {
+        hours = (new Date().getTime() - new Date(currentRecord.checkInTime).getTime()) / (1000 * 60 * 60);
+      }
+      return {
+        date: dateStr,
+        displayDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        status: currentRecord.status,
+        hoursWorked: Math.round(hours * 100) / 100,
+        inProgress: !currentRecord.checkOutTime,
+        tag: currentRecord.tag || 'Regular',
+        isReal: true,
+      };
+    }
+
+    // Lookup in the 30-day fetched history list
+    const historyRecord = historyList.find((h) => h.date === dateStr);
+    if (historyRecord) {
+      return historyRecord;
+    }
+
+    // Default calculations for dates outside our 30-day range
+    const dObj = new Date(currentYear, currentMonth, dayNum);
+    const isFuture = dObj > new Date();
+    const dayOfWeek = dObj.getDay();
+
+    return {
+      date: dateStr,
+      displayDate: dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      status: isFuture ? 'None' : (dayOfWeek === 0 || dayOfWeek === 6 ? 'Weekend' : 'Absent'),
+      hoursWorked: 0,
+      inProgress: false,
+      tag: isFuture ? null : (dayOfWeek === 0 || dayOfWeek === 6 ? 'Weekend' : null),
+      isReal: false,
+    };
+  };
+
+  const selectedDayData = selectedCalendarDay ? getCalendarDayData(selectedCalendarDay) : null;
 
   // Custom tooltips for Recharts Bar Chart
   const CustomBarTooltip = ({ active, payload }: any) => {
@@ -416,7 +538,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Global Alert Banner */}
+      {/* Global Alerts Banner */}
       {alert && (
         <div className={`alert alert-${alert.type}`} role="alert">
           <div>
@@ -454,7 +576,7 @@ export default function Dashboard() {
       </nav>
 
       {/* ======================================================== */}
-      {/* 1. EMPLOYEE WORKSPACE VIEW (DAILY/WEEKLY TOGGLE & CHARTS) */}
+      {/* 1. EMPLOYEE WORKSPACE VIEW                               */}
       {/* ======================================================== */}
       {activeTab === 'employee' && (
         <div className="panel">
@@ -466,7 +588,7 @@ export default function Dashboard() {
               </p>
             </div>
             
-            {/* Phase 2: Daily vs Weekly View Mode Toggle Selector */}
+            {/* Phase 3: Three-way View Toggle (Daily, 7-day Weekly Grid, Monthly Calendar) */}
             {statusChecked && (
               <div className="view-toggle">
                 <button
@@ -480,6 +602,15 @@ export default function Dashboard() {
                   onClick={() => setEmployeeViewMode('weekly')}
                 >
                   📊 7-Day Grid
+                </button>
+                <button
+                  className={`toggle-btn ${employeeViewMode === 'monthly' ? 'active' : ''}`}
+                  onClick={() => {
+                    setEmployeeViewMode('monthly');
+                    setSelectedCalendarDay(new Date().getDate()); // Default select today
+                  }}
+                >
+                  📅 Monthly Calendar
                 </button>
               </div>
             )}
@@ -536,21 +667,20 @@ export default function Dashboard() {
                         )}
                       </div>
 
-                      {/* Tagpill Selection */}
+                      {/* Phase 3: Tag Selection Dropdown (Replaces old pills layout) */}
                       {!currentRecord && (
                         <div className="form-group">
                           <label className="form-label">Work Tag Classification</label>
-                          <div className="tag-selectors">
-                            {['Regular', 'Meeting', 'Field Work', 'WFH'].map((t) => (
-                              <div
-                                key={t}
-                                className={`tag-pill ${activeTag === t ? 'active' : ''}`}
-                                onClick={() => setActiveTag(t)}
-                              >
-                                {t}
-                              </div>
-                            ))}
-                          </div>
+                          <select
+                            className="form-control"
+                            value={activeTag}
+                            onChange={(e) => setActiveTag(e.target.value)}
+                          >
+                            <option value="Regular">Regular</option>
+                            <option value="Meeting">Meeting</option>
+                            <option value="Field Work">Field Work (Offsite)</option>
+                            <option value="WFH">WFH (Remote)</option>
+                          </select>
                         </div>
                       )}
 
@@ -610,13 +740,113 @@ export default function Dashboard() {
                       )}
                     </div>
                   )}
+
+                  {/* --- MONTHLY CALENDAR VIEW (PHASE 3) --- */}
+                  {employeeViewMode === 'monthly' && (
+                    <div className="calendar-container">
+                      {/* Summary KPI Stats Row */}
+                      <div className="stat-cards-grid">
+                        <div className="stat-card">
+                          <span className="stat-card-title">Avg Daily Hours</span>
+                          <span className="stat-card-value">{monthlyStats.avgHours}h</span>
+                          <span className="stat-card-desc">Active shift average</span>
+                        </div>
+                        <div className="stat-card">
+                          <span className="stat-card-title">Total Overtime</span>
+                          <span className="stat-card-value" style={{ color: 'var(--color-secondary)' }}>+{monthlyStats.totalOvertime}h</span>
+                          <span className="stat-card-desc">Hours worked &gt; 8.0h</span>
+                        </div>
+                        <div className="stat-card">
+                          <span className="stat-card-title">Tally Breakdown</span>
+                          <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                            <span className="weekly-status-badge badge-present">{monthlyStats.presentCount}P</span>
+                            <span className="weekly-status-badge badge-halfday">{monthlyStats.halfDayCount}H</span>
+                            <span className="weekly-status-badge badge-absent">{monthlyStats.absentCount}A</span>
+                            <span className="weekly-status-badge badge-leave">{monthlyStats.leaveCount}L</span>
+                          </div>
+                          <span className="stat-card-desc">Status metrics</span>
+                        </div>
+                      </div>
+
+                      {/* Calendar Month Header title */}
+                      <div style={{ display: 'flex', justifyContent: 'center', fontWeight: 700, fontSize: '1rem', color: 'var(--color-secondary)', margin: '0.5rem 0' }}>
+                        {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      </div>
+
+                      {/* Calendar Main Grid */}
+                      <div className="calendar-grid">
+                        {/* Days of the week headers */}
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+                          <div key={d} className="calendar-header-cell">{d}</div>
+                        ))}
+
+                        {/* Month dates */}
+                        {getCalendarDays().map((cell, idx) => {
+                          if (cell.type === 'empty' || !cell.dayNum) {
+                            return <div key={`empty-${idx}`} className="calendar-day-cell empty-cell" />;
+                          }
+
+                          const dayData = getCalendarDayData(cell.dayNum);
+                          const statusClass = `status-${dayData.status.toLowerCase().replace('-', '')}`;
+                          const isSelected = selectedCalendarDay === cell.dayNum;
+
+                          return (
+                            <div
+                              key={`day-${cell.dayNum}`}
+                              className={`calendar-day-cell ${statusClass} ${isSelected ? 'active-selected' : ''}`}
+                              onClick={() => setSelectedCalendarDay(cell.dayNum)}
+                            >
+                              <span className="calendar-day-number">{cell.dayNum}</span>
+                              {dayData.hoursWorked > 0 && (
+                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', alignSelf: 'flex-end' }}>
+                                  {dayData.hoursWorked}h
+                                </span>
+                              )}
+                              <div className="calendar-day-status-indicator" />
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Day Detail Expansion Panel */}
+                      {selectedDayData && (
+                        <div className="day-details-box">
+                          <div className="details-box-header">
+                            📅 Details for {new Date(selectedDayData.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                          </div>
+                          <div className="details-grid">
+                            <div className="details-row">
+                              <span className="details-label">Attendance Status:</span>
+                              <span className={`weekly-status-badge badge-${selectedDayData.status.toLowerCase().replace('-', '')}`}>
+                                {selectedDayData.status}
+                              </span>
+                            </div>
+                            <div className="details-row">
+                              <span className="details-label">Hours Logged:</span>
+                              <span className="details-val">{selectedDayData.hoursWorked > 0 ? `${selectedDayData.hoursWorked} hours` : '0 hours'}</span>
+                            </div>
+                            <div className="details-row">
+                              <span className="details-label">Shift Tag:</span>
+                              <span className="details-val">{selectedDayData.tag || 'None'}</span>
+                            </div>
+                            <div className="details-row">
+                              <span className="details-label">Data Authenticity:</span>
+                              <span className="details-val" style={{ color: selectedDayData.isReal ? 'var(--status-present)' : 'var(--text-muted)' }}>
+                                {selectedDayData.isReal ? 'Database Log' : 'Simulated Fill'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
           {/* --- HISTOGRAMS / CHARTS SECTION (CLIENT RENDERING ONLY) --- */}
-          {statusChecked && mounted && historyList.length > 0 && (
+          {statusChecked && mounted && historyList.length > 0 && employeeViewMode !== 'monthly' && (
             <div className="charts-grid">
               {/* Bar Chart: Hours worked per day */}
               <div className="chart-card">
@@ -630,7 +860,6 @@ export default function Dashboard() {
                       <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
                       <Bar dataKey="hoursWorked" radius={[4, 4, 0, 0]}>
                         {historyList.map((entry, index) => {
-                          // Handle different colors for active vs regular shift bars
                           const color = entry.inProgress ? 'var(--status-halfday)' : 'var(--color-primary)';
                           return <Cell key={`cell-${index}`} fill={color} />;
                         })}
@@ -838,7 +1067,7 @@ export default function Dashboard() {
               </form>
             </div>
 
-            {/* Attendance Logs List with Search Filters */}
+            {/* Attendance Logs Directory */}
             <div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -897,8 +1126,9 @@ export default function Dashboard() {
                           <td style={{ fontWeight: 600 }}>{log.employeeId}</td>
                           <td>{log.employeeName || 'Unknown'}</td>
                           <td>
-                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                              {log.tag || 'None'}
+                            {/* Phase 3: Prominent Tag badge for admins */}
+                            <span className="badge badge-override" style={{ fontSize: '0.75rem', border: 'none', background: 'rgba(255,255,255,0.06)' }}>
+                              {log.tag || 'Regular'}
                             </span>
                           </td>
                           <td>{formatTime(log.checkInTime)}</td>
