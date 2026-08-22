@@ -33,6 +33,19 @@ export interface Attendance {
   total_hours: number;
   status: AttendanceStatus;
   created_at: string;
+  check_in_lat: number | null;
+  check_in_lng: number | null;
+  is_manual_override: boolean;
+  tag: string | null;
+}
+
+export interface OfficeLocation {
+  id: string;
+  latitude: number;
+  longitude: number;
+  radius_meters: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Leave {
@@ -70,6 +83,12 @@ export interface Database {
         Row: Attendance;
         Insert: Partial<Attendance> & Pick<Attendance, "user_id" | "date">;
         Update: Partial<Attendance>;
+        Relationships: [];
+      };
+      office_location: {
+        Row: OfficeLocation;
+        Insert: Partial<OfficeLocation> & Pick<OfficeLocation, "latitude" | "longitude" | "radius_meters">;
+        Update: Partial<OfficeLocation>;
         Relationships: [];
       };
       leaves: {
