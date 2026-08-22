@@ -1,23 +1,24 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { MailCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { signupSchema, type SignupInput } from "@/lib/validation/auth";
-import { signupAction } from "../actions";
+import { signUp, signIn, verifyEmail } from "@/lib/firebase/client";
+import { createSession, syncProfile } from "../firebase-actions";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
-  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   const {
     register,
@@ -27,46 +28,43 @@ export default function SignupPage() {
 
   const onSubmit = (data: SignupInput) => {
     setServerError(null);
-    const formData = new FormData();
-    formData.set("fullName", data.fullName);
-    formData.set("email", data.email);
-    formData.set("password", data.password);
-    formData.set("confirmPassword", data.confirmPassword);
 
     startTransition(async () => {
-      const result = await signupAction({}, formData);
-      if (result.error) {
-        setServerError(result.error);
-        toast.error(result.error);
-        return;
+      try {
+        let user;
+        try {
+          const userCredential = await signUp(data.email, data.password);
+          user = userCredential.user;
+        } catch (err: any) {
+          if (err?.code === "auth/email-already-in-use") {
+            const userCredential = await signIn(data.email, data.password);
+            user = userCredential.user;
+          } else {
+            throw err;
+          }
+        }
+
+        try {
+          await verifyEmail();
+        } catch (err) {
+          console.warn("Email verification notice:", err);
+        }
+
+        await syncProfile(user.uid, data.email, data.fullName);
+
+        const idToken = await user.getIdToken();
+        await createSession(idToken);
+
+        toast.success("Account created! Please sign in.");
+        router.replace("/login");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Failed to create account.";
+        setServerError(msg);
+        toast.error(msg);
       }
-      setSubmittedEmail(data.email);
     });
   };
 
-  if (submittedEmail) {
-    return (
-      <div className="flex min-h-svh items-center justify-center bg-muted/40 px-4">
-        <Card className="w-full max-w-sm text-center">
-          <CardHeader className="items-center">
-            <MailCheck className="mb-2 size-8 text-success" />
-            <CardTitle className="text-xl">Check your inbox</CardTitle>
-            <CardDescription>
-              We sent a verification link to <span className="font-medium">{submittedEmail}</span>.
-              Confirm it, then sign in — every new account starts as an Employee.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/login">
-              <Button variant="outline" className="w-full">
-                Back to sign in
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-muted/40 px-4">

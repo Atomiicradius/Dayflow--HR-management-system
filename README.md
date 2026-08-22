@@ -2,14 +2,19 @@
 
 Every workday, perfectly aligned.
 
-Next.js 15 (App Router) + Supabase (Postgres, Auth, Storage) + shadcn-style UI on Tailwind CSS v4.
+Next.js 15 (App Router) + Firebase (Authentication) / Supabase (Postgres, Storage) + shadcn-style UI on Tailwind CSS v4.
+
+## Authentication & Backend Overview
+
+- **Authentication**: Firebase Authentication is designated for user authentication, sign-in/sign-up flows, and identity management (with Supabase Auth support).
+- **Database & Storage**: Supabase (Postgres, Storage) manages HR data schema (`profiles`, `attendance`, `leaves`, `payroll`) with RLS policies.
 
 ## What's here (Person A's scope)
 
 - `supabase/migrations/0001_init.sql` — full schema (`profiles`, `attendance`, `leaves`, `payroll`), RLS policies, the `handle_new_user` trigger that auto-creates a `profiles` row (always `role = 'employee'`) on sign-up, and the `generate_employee_id` function that produces IDs like `OIJODO20220001`.
 - `src/lib/supabase/{client,server,middleware,admin}.ts` — the four Supabase client flavors (browser, server component/action, middleware, service-role).
 - `src/middleware.ts` — refreshes the session on every request; redirects signed-out users away from `/dashboard/**`, and non-admins away from `/dashboard/admin/**` and `/dashboard/employees/**`.
-- `src/app/(auth)/login`, `src/app/(auth)/signup` — email/password auth. Sign-up has no role picker; every account starts as `employee`.
+- `src/app/(auth)/login`, `src/app/(auth)/signup` — email/password auth forms for user sign in and registration. Sign-up has no role picker; every account starts as `employee`.
 - `src/app/dashboard/layout.tsx` — sidebar, header, role badge, avatar menu with logout.
 - `src/app/dashboard/page.tsx` — renders four summary card slots, one per teammate (see below).
 - `scripts/seed-admin.ts` — the *only* way to create an admin account, run once from the command line with the service-role key.

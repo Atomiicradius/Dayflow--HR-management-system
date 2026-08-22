@@ -1,7 +1,10 @@
-// Hand-written to match supabase/migrations/0001_init.sql.
-// Once the real Supabase project is up, regenerate the authoritative version with:
-//   npx supabase gen types typescript --project-id <ref> > src/types/database.types.ts
-// and replace this file — keep the shape identical so nothing downstream breaks.
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
 
 export type Role = "employee" | "admin";
 export type AttendanceStatus = "present" | "absent" | "half_day" | "leave";
@@ -57,38 +60,82 @@ export interface Payroll {
   updated_at: string;
 }
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       profiles: {
         Row: Profile;
-        Insert: Partial<Profile> & Pick<Profile, "id" | "employee_id" | "full_name" | "email">;
+        Insert: {
+          id: string;
+          employee_id: string;
+          full_name: string;
+          email: string;
+          role?: Role;
+          department?: string | null;
+          designation?: string | null;
+          manager?: string | null;
+          phone?: string | null;
+          address?: string | null;
+          avatar_url?: string | null;
+          date_of_joining?: string;
+          created_at?: string;
+        };
         Update: Partial<Profile>;
         Relationships: [];
       };
       attendance: {
         Row: Attendance;
-        Insert: Partial<Attendance> & Pick<Attendance, "user_id" | "date">;
+        Insert: {
+          id?: string;
+          user_id: string;
+          date: string;
+          check_in?: string | null;
+          check_out?: string | null;
+          total_hours?: number;
+          status?: AttendanceStatus;
+          created_at?: string;
+        };
         Update: Partial<Attendance>;
         Relationships: [];
       };
       leaves: {
         Row: Leave;
-        Insert: Partial<Leave> &
-          Pick<Leave, "user_id" | "leave_type" | "start_date" | "end_date" | "remarks">;
+        Insert: {
+          id?: string;
+          user_id: string;
+          leave_type: LeaveType;
+          start_date: string;
+          end_date: string;
+          remarks: string;
+          status?: LeaveStatus;
+          admin_comment?: string | null;
+          created_at?: string;
+        };
         Update: Partial<Leave>;
         Relationships: [];
       };
       payroll: {
         Row: Payroll;
-        Insert: Partial<Payroll> & Pick<Payroll, "user_id">;
+        Insert: {
+          id?: string;
+          user_id: string;
+          base_salary?: number;
+          allowances?: number;
+          deductions?: number;
+          updated_at?: string;
+        };
         Update: Partial<Payroll>;
         Relationships: [];
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      generate_employee_id: {
+        Args: { p_full_name: string; p_join_year: number };
+        Returns: string;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
-}
+};

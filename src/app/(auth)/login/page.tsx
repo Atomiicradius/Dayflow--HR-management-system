@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { loginSchema, type LoginInput } from "@/lib/validation/auth";
-import { loginAction } from "../actions";
+import { signIn } from "@/lib/firebase/client";
+import { createSession } from "../firebase-actions";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,20 +28,33 @@ export default function LoginPage() {
 
   const onSubmit = (data: LoginInput) => {
     setServerError(null);
-    const formData = new FormData();
-    formData.set("email", data.email);
-    formData.set("password", data.password);
 
     startTransition(async () => {
-      const result = await loginAction({}, formData);
-      if (result.error) {
-        setServerError(result.error);
-        toast.error(result.error);
-        return;
+      try {
+        const userCredential = await signIn(data.email, data.password);
+        const user = userCredential.user;
+
+        if (!user.emailVerified) {
+          toast.warning("Please verify your email address before continuing.");
+        }
+
+        const idToken = await user.getIdToken();
+        const sessionRes = await createSession(idToken);
+
+        if (sessionRes.error) {
+          setServerError(sessionRes.error);
+          toast.error(sessionRes.error);
+          return;
+        }
+
+        toast.success("Welcome back");
+        router.replace("/dashboard");
+        router.refresh();
+      } catch {
+        const msg = "Incorrect email or password.";
+        setServerError(msg);
+        toast.error(msg);
       }
-      toast.success("Welcome back");
-      router.replace("/dashboard");
-      router.refresh();
     });
   };
 
@@ -49,7 +63,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">Sign in to Dayflow</CardTitle>
-          <CardDescription>Use the email and password your HR officer set up for you.</CardDescription>
+          <CardDescription>Use your registered email and password.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>

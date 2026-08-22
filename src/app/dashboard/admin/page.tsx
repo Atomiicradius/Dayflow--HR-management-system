@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
+import { getCurrentProfile } from "@/lib/get-current-profile";
 
-// Landing spot for /dashboard/admin — middleware already guarantees only an
-// admin reaches here. Send them to the employee directory (Person B) by
-// default; swap the target once that route exists if you want a different
-// admin home.
-export default function AdminIndexPage() {
+export default async function AdminIndexPage() {
+  const profile = await getCurrentProfile();
+  if (profile.role !== "admin") {
+    redirect("/dashboard");
+  }
   redirect("/dashboard/employees");
 }
