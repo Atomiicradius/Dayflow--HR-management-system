@@ -102,7 +102,9 @@ export async function createEmployeeAction(
     .maybeSingle();
 
   if (updateError) {
-    return { error: `Account created, but profile setup failed: ${updateError.message}` };
+    // Don't leave an orphaned auth user with a half-configured profile behind.
+    await admin.auth.admin.deleteUser(created.user.id);
+    return { error: `Could not finish setting up the profile: ${updateError.message}` };
   }
 
   revalidatePath("/dashboard/employees");

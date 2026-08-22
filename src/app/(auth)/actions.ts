@@ -57,7 +57,6 @@ export async function signupAction(
   formData: FormData
 ): Promise<AuthActionState> {
   const parsed = signupSchema.safeParse({
-    companyName: formData.get("companyName") || undefined,
     fullName: formData.get("fullName"),
     email: formData.get("email"),
     phone: formData.get("phone") || undefined,
@@ -78,7 +77,6 @@ export async function signupAction(
       data: {
         full_name: parsed.data.fullName,
         phone: parsed.data.phone ?? null,
-        company_name: parsed.data.companyName ?? null,
       },
     },
   });

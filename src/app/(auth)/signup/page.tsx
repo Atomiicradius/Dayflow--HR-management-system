@@ -31,7 +31,6 @@ export default function SignupPage() {
   const onSubmit = (data: SignupInput) => {
     setServerError(null);
     const formData = new FormData();
-    if (data.companyName) formData.set("companyName", data.companyName);
     formData.set("fullName", data.fullName);
     formData.set("email", data.email);
     if (data.phone) formData.set("phone", data.phone);
@@ -65,19 +64,6 @@ export default function SignupPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5" noValidate>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="companyName">Company Name</Label>
-              <Input
-                id="companyName"
-                placeholder="e.g. Odoo India"
-                autoComplete="organization"
-                {...register("companyName")}
-              />
-              {errors.companyName && (
-                <p className="text-xs text-destructive">{errors.companyName.message}</p>
-              )}
-            </div>
-
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="fullName">Full Name</Label>
               <Input

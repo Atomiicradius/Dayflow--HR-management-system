@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { animate, stagger } from "animejs";
 import { LayoutGrid, Network, Search } from "lucide-react";
 
@@ -29,6 +30,7 @@ function matchesQuery(employee: EmployeeDirectoryCardData, query: string): boole
 }
 
 export function EmployeeGrid({ initialEmployees }: { initialEmployees: EmployeeDirectoryCardData[] }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [selected, setSelected] = useState<EmployeeDirectoryCardData | null>(null);
@@ -98,8 +100,9 @@ export function EmployeeGrid({ initialEmployees }: { initialEmployees: EmployeeD
             onCreated={() => {
               // The new hire's row is admin-managed and best re-fetched from the
               // server (their live attendance status starts as "absent" anyway),
-              // so a full reload is simpler and more correct than faking the row.
-              window.location.reload();
+              // so refreshing server data is simpler and more correct than
+              // faking the row client-side.
+              router.refresh();
             }}
           />
         </div>

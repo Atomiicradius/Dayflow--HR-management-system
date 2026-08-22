@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // @supabase/supabase-js 2.112.x's stricter query-builder types collapse to
 // `never` on this project's hand-written Database type in a few call shapes
@@ -109,10 +110,22 @@ export async function uploadAvatarAction(formData: FormData): Promise<UploadAvat
     return { error: "Image must be smaller than 4MB." };
   }
 
-  const extension = file.name.split(".").pop() ?? "jpg";
-  const path = `${user.id}/avatar-${Date.now()}.${extension}`;
+  // 0001_init.sql only grants SELECT/INSERT storage policies on this bucket —
+  // there's no DELETE (or UPDATE) policy, so cleaning up the old avatar via
+  // the session client is silently denied by RLS. The service-role client
+  // bypasses that; the path is still scoped to this authenticated user's own
+  // id, so this doesn't let them touch anyone else's files.
+  const storage = createAdminClient().storage;
 
-  const { error: uploadError } = await supabase.storage
+  const { data: existingFiles } = await storage.from("employee-files").list(user.id);
+  if (existingFiles && existingFiles.length > 0) {
+    await storage.from("employee-files").remove(existingFiles.map((f) => `${user.id}/${f.name}`));
+  }
+
+  const extension = file.name.split(".").pop() ?? "jpg";
+  const path = `${user.id}/avatar.${extension}`;
+
+  const { error: uploadError } = await storage
     .from("employee-files")
     .upload(path, file, { upsert: true, contentType: file.type });
 
@@ -121,7 +134,7 @@ export async function uploadAvatarAction(formData: FormData): Promise<UploadAvat
   }
 
   const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
-  const { data: signed, error: signError } = await supabase.storage
+  const { data: signed, error: signError } = await storage
     .from("employee-files")
     .createSignedUrl(path, ONE_YEAR_SECONDS);
 
