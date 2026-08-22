@@ -110,17 +110,27 @@ export async function uploadAvatarAction(formData: FormData): Promise<UploadAvat
     return { error: "Image must be smaller than 4MB." };
   }
 
-  // 0001_init.sql only grants SELECT/INSERT storage policies on this bucket —
-  // there's no DELETE (or UPDATE) policy, so cleaning up the old avatar via
-  // the session client is silently denied by RLS. The service-role client
-  // bypasses that; the path is still scoped to this authenticated user's own
-  // id, so this doesn't let them touch anyone else's files.
-  const storage = createAdminClient().storage;
-
-  const { data: existingFiles } = await storage.from("employee-files").list(user.id);
+  // Cleanup only, via the service-role client: files uploaded before
+  // 0002_employee_files_storage_policies.sql landed were written by the old
+  // admin-client upload path below, so they carry a null `owner` (service-role
+  // requests have no user JWT for Postgres to attribute). A null owner never
+  // matches `owner = auth.uid()`, so the user's own session client can't see
+  // or remove those orphans via RLS — admin bypasses that. Scoped to this
+  // user's own folder, so it can't touch anyone else's files.
+  const adminStorage = createAdminClient().storage;
+  const { data: existingFiles } = await adminStorage.from("employee-files").list(user.id);
   if (existingFiles && existingFiles.length > 0) {
-    await storage.from("employee-files").remove(existingFiles.map((f) => `${user.id}/${f.name}`));
+    await adminStorage
+      .from("employee-files")
+      .remove(existingFiles.map((f) => `${user.id}/${f.name}`));
   }
+
+  // The actual upload runs through the user's own session client (not admin)
+  // so Postgres attributes `owner = auth.uid()` on the object — required for
+  // 0002's owner-scoped RLS policies to ever let this user manage their own
+  // avatar afterwards. Any conflicting old row was already cleared above, so
+  // this is always a fresh insert, not an RLS-gated update.
+  const storage = supabase.storage;
 
   const extension = file.name.split(".").pop() ?? "jpg";
   const path = `${user.id}/avatar.${extension}`;
