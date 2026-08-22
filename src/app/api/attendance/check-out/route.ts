@@ -36,17 +36,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update with check-out timestamp
+    // Calculate shift duration in hours
+    const checkInTime = new Date(existing.checkInTime);
+    const checkOutTime = new Date();
+    const diffMs = checkOutTime.getTime() - checkInTime.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    // Automate status transition: if hours < 4, mark as Half-day; otherwise, Present.
+    // Preserve status if manually overridden by an admin or if they are on Leave.
+    let updatedStatus = existing.status;
+    if (!existing.isManualOverride && existing.status !== 'Leave') {
+      updatedStatus = diffHours < 4.0 ? 'Half-day' : 'Present';
+    }
+
+    // Update with check-out timestamp and status logic
     const record = await db.attendance.update({
       where: {
         id: existing.id,
       },
       data: {
-        checkOutTime: new Date(),
+        checkOutTime,
+        status: updatedStatus,
       },
     });
 
-    return NextResponse.json({ success: true, record });
+    return NextResponse.json({ success: true, record, hoursWorked: diffHours });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
